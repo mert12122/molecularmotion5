@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular Motion &amp; Density</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #1a2332 0%, #2a3a52 50%, #1e2d42 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e8e8e8;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #f0c866;
+            text-align: center;
+            margin-bottom: 2px;
+            letter-spacing: 0.4px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #a8b8cc;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .sim-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 10px;
+            align-items: flex-end;
+        }
+
+        .tank-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .tank-label {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 3px;
+            letter-spacing: 0.3px;
+        }
+
+        .cold-label { color: #64b5f6; }
+        .hot-label { color: #ef5350; }
+
+        .temp-display {
+            font-size: 12px;
+            color: #ccc;
+            margin-bottom: 6px;
+        }
+
+        .tank-outer {
+            position: relative;
+            width: 220px;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .tank-frame {
+            position: relative;
+            width: 220px;
+            border: 3px solid #8a9bb5;
+            border-radius: 0 0 7px 7px;
+            border-top: none;
+            overflow: hidden;
+            background: rgba(10, 18, 30, 0.85);
+            box-shadow: 0 3px 15px rgba(0,0,0,0.4), inset 0 0 20px rgba(0,0,0,0.3);
+        }
+
+        .tank-top {
+            width: 220px;
+            height: 3px;
+            position: relative;
+        }
+
+        .tank-top-left, .tank-top-right {
+            position: absolute;
+            top: 0;
+            height: 3px;
+            background: #8a9bb5;
+        }
+
+        .tank-top-left {
+            left: 0;
+            width: 60px;
+            border-radius: 7px 0 0 0;
+        }
+
+        .tank-top-right {
+            right: 0;
+            width: 60px;
+            border-radius: 0 7px 0 0;
+        }
+
+        .empty-space {
+            width: 220px;
+            border-left: 3px solid #8a9bb5;
+            border-right: 3px solid #8a9bb5;
+            background: rgba(10, 18, 30, 0.4);
+            position: relative;
+        }
+
+        .water-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255,255,255,0.15);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .water-fill-cold {
+            background: rgba(30, 60, 110, 0.25);
+        }
+
+        .water-fill-hot {
+            background: rgba(110, 30, 30, 0.25);
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            width: 220px;
+            margin-top: 5px;
+            padding: 5px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 5px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: #8a9bb5;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .stat-value {
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 1px;
+        }
+
+        .stat-value.cold { color: #64b5f6; }
+        .stat-value.hot { color: #ef5350; }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            padding: 7px 16px;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.2px;
+        }
+
+        .btn-cold {
+            background: #1565c0;
+            color: white;
+        }
+        .btn-cold:hover { background: #1976d2; }
+
+        .btn-hot {
+            background: #c62828;
+            color: white;
+        }
+        .btn-hot:hover { background: #d32f2f; }
+
+        .btn-both {
+            background: #6d4c8e;
+            color: white;
+        }
+        .btn-both:hover { background: #7e57a0; }
+
+        .btn-reset {
+            background: #546e7a;
+            color: white;
+        }
+        .btn-reset:hover { background: #607d8b; }
+
+        .btn.active {
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
+            transform: scale(1.03);
+        }
+
+        .observation-box {
+            max-width: 490px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 8px 14px;
+            text-align: center;
+        }
+
+        .observation-box p {
+            font-size: 12px;
+            color: #c0cfdf;
+            line-height: 1.4;
+        }
+
+        .observation-box .highlight {
+            color: #f0c866;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Molecular Motion &amp; Density</h1>
+    <p class="subtitle">How does temperature affect the movement and spacing of water molecules?</p>
+
+    <div class="controls">
+        <button class="btn btn-cold" onclick="showCold()">Cold Water</button>
+        <button class="btn btn-hot" onclick="showHot()">Hot Water</button>
+        <button class="btn btn-both active" onclick="showBoth()">Compare Both</button>
+        <button class="btn btn-reset" onclick="resetSim()">Reset</button>
+    </div>
+
+    <div class="sim-container">
+        <!-- COLD TANK -->
+        <div class="tank-wrapper" id="coldWrapper">
+            <div class="tank-label cold-label">Cold Water</div>
+            <div class="temp-display">🌡️ 10°C</div>
+            <div class="tank-outer">
+                <div class="tank-top">
+                    <div class="tank-top-left"></div>
+                    <div class="tank-top-right"></div>
+                </div>
+                <div class="empty-space" id="coldEmpty" style="height: 110px;">
+                    <div class="water-line"></div>
+                </div>
+                <div class="tank-frame water-fill-cold" id="coldTank" style="height: 190px;">
+                    <canvas id="coldCanvas"></canvas>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat">
+                    <div class="stat-label">Molecules</div>
+                    <div class="stat-value cold">40</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Temperature</div>
+                    <div class="stat-value cold">10°C</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOT TANK -->
+        <div class="tank-wrapper" id="hotWrapper">
+            <div class="tank-label hot-label">Hot Water</div>
+            <div class="temp-display">🌡️ 90°C</div>
+            <div class="tank-outer">
+                <div class="tank-top">
+                    <div class="tank-top-left"></div>
+                    <div class="tank-top-right"></div>
+                </div>
+                <div class="empty-space" id="hotEmpty" style="height: 48px;">
+                    <div class="water-line"></div>
+                </div>
+                <div class="tank-frame water-fill-hot" id="hotTank" style="height: 252px;">
+                    <canvas id="hotCanvas"></canvas>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat">
+                    <div class="stat-label">Molecules</div>
+                    <div class="stat-value hot">40</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Temperature</div>
+                    <div class="stat-value hot">90°C</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="observation-box">
+        <p><span class="highlight">Observe:</span> Both tanks contain the <span class="highlight">same number of molecules</span>. 
+        Watch how they move and how much space they take up. What differences do you notice?</p>
+        <p style="font-size: 10px; color: #a0aab4; margin-top: 4px; font-style: italic;">Note: Volume difference exaggerated for visibility. Actual water expansion from 10°C to 90°C is about 3–4%.</p>
+    </div>
+
+    <script>
+        const NUM_MOLECULES = 35;
+
+        const COLD_CONFIG = {
+            baseSpeed: 0.35,
+            speedVariation: 0.25,
+            repelRadius: 14,
+            repelForce: 0.13,
+            color: '#64b5f6',
+            glowColor: 'rgba(100, 181, 246, 0.3)',
+            jitter: 0.28
+        };
+
+        const HOT_CONFIG = {
+            baseSpeed: 1.6,
+            speedVariation: 0.7,
+            repelRadius: 25,
+            repelForce: 0.22,
+            color: '#ef5350',
+            glowColor: 'rgba(239, 83, 80, 0.3)',
+            jitter: 1.1
+        };
+
+        class Molecule {
+            constructor(canvas, config) {
+                this.canvas = canvas;
+                this.config = config;
+                this.radius = 5.5;
+                this.x = Math.random() * (canvas.width - 34) + 17;
+                this.y = Math.random() * (canvas.height - 34) + 17;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = config.baseSpeed + (Math.random() - 0.5) * config.speedVariation;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+            }
+
+            update(molecules) {
+                this.vx += (Math.random() - 0.5) * this.config.jitter;
+                this.vy += (Math.random() - 0.5) * this.config.jitter;
+
+                for (let other of molecules) {
+                    if (other === this) continue;
+                    const dx = this.x - other.x;
+                    const dy = this.y - other.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < this.config.repelRadius && dist > 0) {
+                        const force = this.config.repelForce * (1 - dist / this.config.repelRadius);
+                        this.vx += (dx / dist) * force;
+                        this.vy += (dy / dist) * force;
+                    }
+                }
+
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const maxSpeed = this.config.baseSpeed * 2.5;
+                if (speed > maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
+
+                const targetSpeed = this.config.baseSpeed + (Math.random() - 0.5) * this.config.speedVariation * 0.5;
+                if (speed > 0) {
+                    const correction = 0.01;
+                    const desiredSpeed = speed + (targetSpeed - speed) * correction;
+                    this.vx = (this.vx / speed) * desiredSpeed;
+                    this.vy = (this.vy / speed) * desiredSpeed;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                const margin = this.radius + 2;
+                if (this.x < margin) { this.x = margin; this.vx *= -0.8; }
+                if (this.x > this.canvas.width - margin) { this.x = this.canvas.width - margin; this.vx *= -0.8; }
+                if (this.y < margin) { this.y = margin; this.vy *= -0.8; }
+                if (this.y > this.canvas.height - margin) { this.y = this.canvas.height - margin; this.vy *= -0.8; }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 2.2);
+                gradient.addColorStop(0, this.config.glowColor);
+                gradient.addColorStop(1, 'transparent');
+                ctx.arc(this.x, this.y, this.radius * 2.2, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.config.color;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(this.x - 1.5, this.y - 1.5, this.radius * 0.38, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.35)';
+                ctx.fill();
+            }
+        }
+
+        class Simulation {
+            constructor(canvasId, config) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.config = config;
+                this.molecules = [];
+                this.resize();
+                this.init();
+            }
+
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+            }
+
+            init() {
+                this.molecules = [];
+                for (let i = 0; i < NUM_MOLECULES; i++) {
+                    this.molecules.push(new Molecule(this.canvas, this.config));
+                }
+            }
+
+            update() {
+                for (let mol of this.molecules) {
+                    mol.update(this.molecules);
+                }
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                if (this.config === COLD_CONFIG) {
+                    for (let i = 0; i < this.molecules.length; i++) {
+                        for (let j = i + 1; j < this.molecules.length; j++) {
+                            const a = this.molecules[i];
+                            const b = this.molecules[j];
+                            const dx = a.x - b.x;
+                            const dy = a.y - b.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 28) {
+                                this.ctx.beginPath();
+                                this.ctx.moveTo(a.x, a.y);
+                                this.ctx.lineTo(b.x, b.y);
+                                const alpha = 0.12 * (1 - dist / 28);
+                                this.ctx.strokeStyle = `rgba(100, 181, 246, ${alpha})`;
+                                this.ctx.lineWidth = 1;
+                                this.ctx.stroke();
+                            }
+                        }
+                    }
+                }
+
+                for (let mol of this.molecules) {
+                    mol.draw(this.ctx);
+                }
+            }
+        }
+
+        let coldSim, hotSim;
+        let animId;
+
+        function initSims() {
+            coldSim = new Simulation('coldCanvas', COLD_CONFIG);
+            hotSim = new Simulation('hotCanvas', HOT_CONFIG);
+        }
+
+        function animate() {
+            coldSim.update();
+            coldSim.draw();
+            hotSim.update();
+            hotSim.draw();
+            animId = requestAnimationFrame(animate);
+        }
+
+        function showCold() {
+            document.getElementById('coldWrapper').style.display = 'flex';
+            document.getElementById('hotWrapper').style.display = 'none';
+            updateButtons('cold');
+        }
+
+        function showHot() {
+            document.getElementById('coldWrapper').style.display = 'none';
+            document.getElementById('hotWrapper').style.display = 'flex';
+            updateButtons('hot');
+        }
+
+        function showBoth() {
+            document.getElementById('coldWrapper').style.display = 'flex';
+            document.getElementById('hotWrapper').style.display = 'flex';
+            updateButtons('both');
+        }
+
+        function resetSim() {
+            cancelAnimationFrame(animId);
+            initSims();
+            animate();
+        }
+
+        function updateButtons(active) {
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            if (active === 'cold') document.querySelector('.btn-cold').classList.add('active');
+            if (active === 'hot') document.querySelector('.btn-hot').classList.add('active');
+            if (active === 'both') document.querySelector('.btn-both').classList.add('active');
+        }
+
+        window.addEventListener('load', () => {
+            initSims();
+            animate();
+        });
+
+        window.addEventListener('resize', () => {
+            if (coldSim) coldSim.resize();
+            if (hotSim) hotSim.resize();
+        });
+    </script>
+</body>
+</html>
